@@ -1,0 +1,65 @@
+---
+title: "Final Project"
+author: "Group 6"
+date: "2024-12-06"
+output: html_document
+---
+
+```{r, libraries, include=FALSE}
+library(rnaturalearth)
+library(sf)
+library(tidyverse)
+library(dplyr)
+library(stars)
+library(randomForest)
+library(mapview)
+library(ggplot2)
+```
+
+```{r, data}
+f <- list.files("/Users/carolinevontzalides/Documents/Org Bio Github/Final_Project/NLCD",pattern = ".tif")
+print(f)
+
+lndchg <- f[grepl("LndChg", f)]
+print(lndchg)
+new_lndchg <- gsub(".*(LndChg)_([0-9]{4}).*", "\\1_\\2", basename(lndchg))
+
+lndcov <- f[grepl("LndCov", f)]
+print(lndcov)
+new_lndcov <- gsub(".*(LndCov)_([0-9]{4}).*", "\\1_\\2", basename(lndcov))
+
+imprev <- f[grepl("ImpDsc", f)]
+new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
+
+#ALL RENAMING DONE!
+
+#towns: 
+nh <- read_sf("/Users/carolinevontzalides/Documents/Org Bio Github/Final_Project/NH/New_Hampshire_Political_Boundaries.shp") %>%
+  rename(TOWN=pbpNAME) 
+
+towns_of_interest <- c("Hancock", "Nelson", "Peterborough", "Keene")
+
+nh_filtered <- nh %>% filter(TOWN %in% towns_of_interest)
+
+#NOT WORKING!
+#land use
+land_use <- read_stars(f[grepl("LndCov", f)][1]) %>%
+  setNames("land_use") %>%
+  st_transform(st_crs(nh)) %>%
+  st_crop(nh_filtered) %>%
+  st_downsample(factor = 5, FUN = mean)
+
+#imprevious
+impervious <- read_stars(f[grepl("ImpDsc", f)]) %>%
+  setNames("impervious") %>%
+  st_transform(st_crs(nh)) %>%
+  st_crop(nh_filtered) %>%
+  st_downsample(factor = 5, FUN = mean)
+
+#land change
+land_change <- read_stars(f[grepl("LndChg", f)][1]) %>%
+  setNames("land_change") %>%
+  st_transform(st_crs(nh)) %>%
+  st_crop(nh_filtered) %>%
+  st_downsample(factor = 5, FUN = mean)
+```
