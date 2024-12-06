@@ -18,7 +18,7 @@ library(ggplot2)
 
 ```{r, data}
 
-#CPK: Changed this bc I'm not using your computer (you should too!). AND!!! Look at what the file paths DON'T contain, i.e., how is stars to read in a file in a folder that you haven't told it it's in?
+#CPK: Changed this bc I'm not using your computer (you should too!). AND!!! Look at what the file paths DON'T contain, i.e., how is stars to read in a file in a folder that you haven't told it it's in? full.names?
 f <- list.files("NLCD",pattern = ".tif")
 print(f)
 
@@ -52,10 +52,13 @@ land_use <- read_stars(f[grepl("LndCov", f)][1]) %>%
   st_crop(nh_filtered)#CPK: this causes an error, but bc you're intersecting so few data, the downsample is unnned %>%
   #st_downsample(factor = 5, FUN = mean)
 
-#CPK: my advice would be to run a for loop or lapply to read in each year and combine to one big sf dataframe.
+#CPK: my advice would be to either run a for loop or read_stars can read in multiple files. e.g.
+
+imperv_ <- read_stars(f[grepl("ImpDsc", f)])
+attributes(imperv_)
 
 #imprevious
-impervious <- read_stars(f[grepl("ImpDsc", f)]) %>%
+impervious <- read_stars(f[grepl("ImpDsc", f)][1]) %>%
   setNames("impervious") %>%
   st_transform(st_crs(nh)) %>%
   st_crop(nh_filtered) %>%
