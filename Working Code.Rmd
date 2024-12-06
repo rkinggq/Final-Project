@@ -17,26 +17,19 @@ library(ggplot2)
 ```
 
 ```{r, data}
-
-#CPK: Changed this bc I'm not using your computer (you should too!). AND!!! Look at what the file paths DON'T contain, i.e., how is stars to read in a file in a folder that you haven't told it it's in? full.names?
-f <- list.files("NLCD",pattern = ".tif")
+f <- list.files("NLCD",pattern = ".tif", full.names=TRUE)
 print(f)
 
 lndchg <- f[grepl("LndChg", f)]
-print(lndchg)
 new_lndchg <- gsub(".*(LndChg)_([0-9]{4}).*", "\\1_\\2", basename(lndchg))
 
 lndcov <- f[grepl("LndCov", f)]
-print(lndcov)
 new_lndcov <- gsub(".*(LndCov)_([0-9]{4}).*", "\\1_\\2", basename(lndcov))
 
 imprev <- f[grepl("ImpDsc", f)]
 new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
 
-#ALL RENAMING DONE!
-
 #towns: 
-#CPK: ditto
 nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
   rename(TOWN=pbpNAME) 
 
@@ -44,30 +37,21 @@ towns_of_interest <- c("Hancock", "Nelson", "Peterborough", "Keene")
 
 nh_filtered <- nh %>% filter(TOWN %in% towns_of_interest)
 
-#NOT WORKING!
 #land use
-land_use <- read_stars(f[grepl("LndCov", f)][1]) %>%
+land_use <- read_stars(f[grepl("LndCov", f)]) %>%
   setNames("land_use") %>%
   st_transform(st_crs(nh)) %>%
-  st_crop(nh_filtered)#CPK: this causes an error, but bc you're intersecting so few data, the downsample is unnned %>%
-  #st_downsample(factor = 5, FUN = mean)
-
-#CPK: my advice would be to either run a for loop or read_stars can read in multiple files. e.g.
-
-imperv_ <- read_stars(f[grepl("ImpDsc", f)])
-attributes(imperv_)
+  st_crop(nh_filtered)
 
 #imprevious
-impervious <- read_stars(f[grepl("ImpDsc", f)][1]) %>%
-  setNames("impervious") %>%
+imprevious <- read_stars(f[grepl("ImpDsc", f)]) %>%
+  setNames("imprevious") %>%
   st_transform(st_crs(nh)) %>%
-  st_crop(nh_filtered) %>%
-  st_downsample(factor = 5, FUN = mean)
+  st_crop(nh_filtered) 
 
 #land change
-land_change <- read_stars(f[grepl("LndChg", f)][1]) %>%
+land_change <- read_stars(f[grepl("LndChg", f)]) %>%
   setNames("land_change") %>%
   st_transform(st_crs(nh)) %>%
-  st_crop(nh_filtered) %>%
-  st_downsample(factor = 5, FUN = mean)
+  st_crop(nh_filtered)
 ```
