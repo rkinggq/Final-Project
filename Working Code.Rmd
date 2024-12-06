@@ -17,7 +17,9 @@ library(ggplot2)
 ```
 
 ```{r, data}
-f <- list.files("/Users/carolinevontzalides/Documents/Org Bio Github/Final_Project/NLCD",pattern = ".tif")
+
+#CPK: Changed this bc I'm not using your computer (you should too!). AND!!! Look at what the file paths DON'T contain, i.e., how is stars to read in a file in a folder that you haven't told it it's in?
+f <- list.files("NLCD",pattern = ".tif")
 print(f)
 
 lndchg <- f[grepl("LndChg", f)]
@@ -34,7 +36,8 @@ new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
 #ALL RENAMING DONE!
 
 #towns: 
-nh <- read_sf("/Users/carolinevontzalides/Documents/Org Bio Github/Final_Project/NH/New_Hampshire_Political_Boundaries.shp") %>%
+#CPK: ditto
+nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
   rename(TOWN=pbpNAME) 
 
 towns_of_interest <- c("Hancock", "Nelson", "Peterborough", "Keene")
@@ -46,8 +49,10 @@ nh_filtered <- nh %>% filter(TOWN %in% towns_of_interest)
 land_use <- read_stars(f[grepl("LndCov", f)][1]) %>%
   setNames("land_use") %>%
   st_transform(st_crs(nh)) %>%
-  st_crop(nh_filtered) %>%
-  st_downsample(factor = 5, FUN = mean)
+  st_crop(nh_filtered)#CPK: this causes an error, but bc you're intersecting so few data, the downsample is unnned %>%
+  #st_downsample(factor = 5, FUN = mean)
+
+#CPK: my advice would be to run a for loop or lapply to read in each year and combine to one big sf dataframe.
 
 #imprevious
 impervious <- read_stars(f[grepl("ImpDsc", f)]) %>%
