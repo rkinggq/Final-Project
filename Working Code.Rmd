@@ -5,6 +5,13 @@ date: "2024-12-06"
 output: html_document
 ---
 
+# Introduction 
+
+
+# Methods 
+
+
+
 ```{r, libraries, include=FALSE}
 library(rnaturalearth)
 library(sf)
@@ -17,6 +24,26 @@ library(ggplot2)
 ```
 
 ```{r, data}
+#amphibian data: 
+amphibian <- read_csv("amphibiandata.csv")
+
+#towns: 
+nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
+  rename(TOWN=pbpNAME) 
+
+towns_of_interest <- c("Hancock", "Nelson", "Peterborough", "Keene")
+
+nh_filtered <- nh %>% filter(TOWN %in% towns_of_interest)
+
+ggplot() +
+  geom_sf(data = nh, fill = "gray80", color = "black", lwd = 0.1) +  # Background towns
+  geom_sf(data = nh_filtered, fill = "red", color = "black", lwd = 0.5) +  # Highlight towns of interest
+  geom_sf_text(data = nh_filtered, aes(label = TOWN), size = 3, color = "black") +  # Label towns of interest
+  theme_void()
+```
+
+```{r, raster data}
+#raster data:
 f <- list.files("NLCD",pattern = ".tif", full.names=TRUE)
 print(f)
 
@@ -28,14 +55,6 @@ new_lndcov <- gsub(".*(LndCov)_([0-9]{4}).*", "\\1_\\2", basename(lndcov))
 
 imprev <- f[grepl("ImpDsc", f)]
 new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
-
-#towns: 
-nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
-  rename(TOWN=pbpNAME) 
-
-towns_of_interest <- c("Hancock", "Nelson", "Peterborough", "Keene")
-
-nh_filtered <- nh %>% filter(TOWN %in% towns_of_interest)
 
 #land use
 land_use <- read_stars(f[grepl("LndCov", f)]) %>%
@@ -54,4 +73,8 @@ land_change <- read_stars(f[grepl("LndChg", f)]) %>%
   setNames("land_change") %>%
   st_transform(st_crs(nh)) %>%
   st_crop(nh_filtered)
+```
+
+```{r, work for analyzing}
+
 ```
