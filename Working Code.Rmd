@@ -26,6 +26,10 @@ library(ggplot2)
 ```{r, data}
 #amphibian data: 
 amphibian <- read_csv("amphibiandata.csv")
+amphibian <- amphibian %>%
+  rename(Dead = `# Dead`) %>% 
+  rename(Crossed = `# Crossed`) %>% 
+  rename(TOWN = `Town`)
 
 #towns: 
 nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
@@ -56,25 +60,56 @@ new_lndcov <- gsub(".*(LndCov)_([0-9]{4}).*", "\\1_\\2", basename(lndcov))
 imprev <- f[grepl("ImpDsc", f)]
 new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
 
+
+#HAVING PROBLEMS HERE!
 #land use
 land_use <- read_stars(f[grepl("LndCov", f)]) %>%
   setNames("land_use") %>%
-  st_transform(st_crs(nh)) %>%
+  st_transform(st_crs(nh_filtered)) %>%
   st_crop(nh_filtered)
 
 #imprevious
 imprevious <- read_stars(f[grepl("ImpDsc", f)]) %>%
   setNames("imprevious") %>%
-  st_transform(st_crs(nh)) %>%
+  st_transform(st_crs(nh_filtered)) %>%
   st_crop(nh_filtered) 
 
 #land change
 land_change <- read_stars(f[grepl("LndChg", f)]) %>%
   setNames("land_change") %>%
-  st_transform(st_crs(nh)) %>%
+  st_transform(st_crs(nh_filtered)) %>%
   st_crop(nh_filtered)
 ```
 
-```{r, work for analyzing}
+```{r, working data}
+# Is amphibian abudnance spaitally autocorrelated, are there pockets of higher or lower dead??
+nh_amphibian <- nh_filtered %>% 
+  left_join(amphibian, by ="TOWN") %>% 
+  dplyr::select(TOWN, Dead, geometry)
+
+nh_amphibian %>%
+  ggplot() + 
+  geom_sf(aes(fill = Dead)) +
+  labs(title = "Amphibian Abundance (Dead) Across New Hampshire") +
+  scale_fill_gradient(
+    name = "Dead Count", 
+    limits = c(0, 150), 
+    low = "lightblue", 
+    high = "darkblue", 
+    na.value = "grey50" # Handles NA values
+  ) +
+  theme_minimal()
+
+mapview(nh_amphibian, zcol="Dead")
+```
+```{r, analysis}
+
+#HELP! This part giving issues
+nh_lu <- land_use %>% 
+  st_as_sf %>% 
+  st_join(nh_filtered) %>% 
+  select(land_use, TOWN, geometry)
+
+land_use <- st_as_sf(land_use)
 
 ```
