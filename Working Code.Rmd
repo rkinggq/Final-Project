@@ -121,6 +121,9 @@ lu_legend <- read_csv("NLCD/NLCD_landcover_legend_2018_12_17_cFIMZEB3BFBhJA54WRx
   rename(landuse=Value) %>% 
   mutate(landuse=as.factor(landuse))
 
+dev <- (lu_legend %>% filter(!is.na(Legend)))[4:7,]$Legend
+
+x=lu[[1]]
 join_dat <- function(x){
   x %>% st_as_sf %>% 
     st_join(nh_filtered) %>% 
@@ -129,12 +132,22 @@ join_dat <- function(x){
     left_join(lu_legend) %>% 
     dplyr::select(landuse, TOWN,Legend) %>% 
     group_by(landuse,TOWN,Legend) %>% 
+    dplyr::filter(Legend%in%dev) %>% 
     count
   
 }
 #CPK:dnow use mclapply to do this operation on list of lu using custom fun. do same for other data. Beware. This will still take a while. If you'd like to decrease the time, you could downstample the stars objects, but this has a resolution tradeoff, of course.
 
-nh_lu <- mclapply(lu, function(x) join_dat(x),
-                  mc.cores = detectCores()-2)
+nh_lu <- lapply(1, function(y) join_dat(lu[[y]]) %>% mutate(year=names(lu)[y]))
 
+#Use this for a custom function to pull development index for each year and town
+nh_lu[[1]] %>% 
+  na.omit %>% 
+  group_by(TOWN,year) %>% 
+  mutate(dev_prop=n/sum(n)) %>% 
+  left_join(
+    tibble(Legend=dev,score=1:4)
+  ) %>% 
+  group_by(TOWN,year) %>% 
+  summarize(dev_index=log(sum(dev_prop*score))) #development index
 ```
