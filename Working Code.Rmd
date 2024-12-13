@@ -22,6 +22,7 @@ library(randomForest)
 library(mapview)
 library(ggplot2)
 library(parallel)
+library(gridExtra)
 ```
 
 ```{r, data}
@@ -30,7 +31,8 @@ amphibian <- read_csv("amphibiandata.csv")
 amphibian <- amphibian %>%
   rename(Dead = `# Dead`) %>% 
   rename(Crossed = `# Crossed`) %>% 
-  rename(TOWN = `Town`)
+  rename(TOWN = `Town`) %>% 
+  rename(year = `Year`)
 
 #towns: 
 nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
@@ -52,46 +54,27 @@ ggplot() +
 f <- list.files("NLCD",pattern = ".tif", full.names=TRUE)
 print(f)
 
-lndchg <- f[grepl("LndChg", f)]
-new_lndchg <- gsub(".*(LndChg)_([0-9]{4}).*", "\\1_\\2", basename(lndchg))
-
 lndcov <- f[grepl("LndCov", f)]
-new_lndcov <- gsub(".*(LndCov)_([0-9]{4}).*", "\\1_\\2", basename(lndcov))
+new_lndcov <- gsub(".*LndCov_([0-9]{4}).*", "\\1", basename(lndcov))
 
-imprev <- f[grepl("ImpDsc", f)]
-new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
-
-
-#HAVING PROBLEMS HERE!
 #land use
 
-read_stars2 <- function(x,dat=NULL,name=NULL){x %>% 
+read_stars2 <- function(x, dat = NULL, name = NULL) {
+  x %>% 
     read_stars(f[grepl(dat, f)]) %>%
-  setNames(name) %>%
-  st_transform(st_crs(nh)) %>%
-  st_crop(nh)}
+    setNames(name) %>%
+    st_transform(st_crs(nh)) %>%
+    st_crop(nh)
+}
 
-
-#use mclapply to load each file of each dataset
-lu <- mclapply(f[grepl("LndCov", f)], function(x) read_stars2(x,"LndCov","landuse"),mc.cores = detectCores()-2)
+#use lapply to load each file of each dataset
+lu <- lapply(f[grepl("LndCov", f)], function(x) read_stars2(x, "LndCov", "landuse"))
 names(lu) <- new_lndcov
-
-
-#imprevious
-imprevious <- read_stars(f[grepl("ImpDsc", f)]) %>%
-  setNames("imprevious") %>%
-  st_transform(st_crs(nh_filtered)) %>%
-  st_crop(nh_filtered) 
-
-#land change
-land_change <- read_stars(f[grepl("LndChg", f)]) %>%
-  setNames("land_change") %>%
-  st_transform(st_crs(nh_filtered)) %>%
-  st_crop(nh_filtered)
 ```
 
+
 ```{r, working data}
-# Is amphibian abudnance spaitally autocorrelated, are there pockets of higher or lower dead??
+# Is amphibian abundance spaitally autocorrelated, are there pockets of higher or lower dead??
 nh_amphibian <- nh_filtered %>% 
   left_join(amphibian, by ="TOWN") %>% 
   dplyr::select(TOWN, Dead, geometry)
@@ -111,19 +94,16 @@ nh_amphibian %>%
 
 mapview(nh_amphibian, zcol="Dead")
 ```
+
+
 ```{r, analysis}
 
-#HELP! This part giving issues
-#CPK: This stems from multiple years. I broke it down above in a list, now we can join the stars data with the shapes and the legend (see below) working on a list again.
-
-#CPK: for joining an making logical lu designations rather than just numbers
 lu_legend <- read_csv("NLCD/NLCD_landcover_legend_2018_12_17_cFIMZEB3BFBhJA54WRx4.csv") %>% 
   rename(landuse=Value) %>% 
   mutate(landuse=as.factor(landuse))
 
 dev <- (lu_legend %>% filter(!is.na(Legend)))[4:7,]$Legend
 
-x=lu[[1]]
 join_dat <- function(x){
   x %>% st_as_sf %>% 
     st_join(nh_filtered) %>% 
@@ -136,12 +116,18 @@ join_dat <- function(x){
     count
   
 }
-#CPK:dnow use mclapply to do this operation on list of lu using custom fun. do same for other data. Beware. This will still take a while. If you'd like to decrease the time, you could downstample the stars objects, but this has a resolution tradeoff, of course.
 
-nh_lu <- lapply(1, function(y) join_dat(lu[[y]]) %>% mutate(year=names(lu)[y]))
+nh_lu <- lapply(1:length(lu), function(y) {
+  join_dat(lu[[y]]) %>% mutate(year = names(lu)[y]) 
+})
+
+nh_lu_combined <- bind_rows(nh_lu)
+nh_lu_combined <- nh_lu_combined %>% 
+  filter(!is.na(TOWN), !is.na(Legend))
+
 
 #Use this for a custom function to pull development index for each year and town
-nh_lu[[1]] %>% 
+dev_index_result <- nh_lu_combined %>% 
   na.omit %>% 
   group_by(TOWN,year) %>% 
   mutate(dev_prop=n/sum(n)) %>% 
@@ -150,4 +136,57 @@ nh_lu[[1]] %>%
   ) %>% 
   group_by(TOWN,year) %>% 
   summarize(dev_index=log(sum(dev_prop*score))) #development index
+
+
+#FINAL TIBBLE!!!
+combined_data <- dev_index_result %>%
+  left_join(amphibian, by = c("TOWN", "year"))
+
 ```
+
+
+```{r, analyze results linear models}
+
+#linear model: 
+lm_result <- lm(Crossed ~ dev_index + year + TOWN, data = combined_data)
+summary(lm_result)
+
+
+#interaction: 
+lm_result_interaction <- lm(Crossed ~ dev_index * year + TOWN, data = combined_data)
+summary(lm_result_interaction)
+
+```
+
+
+```{r, graphing}
+plot_keene <- ggplot(subset(combined_data, TOWN == "Keene"), aes(x = year, y = dev_index)) +
+  geom_point(aes(color = TOWN), size = 3) +
+  geom_line(aes(group = TOWN, color = TOWN), size = 1) +
+  labs(title = "Keene", x = "Year", y = "Development Index") +
+  theme_minimal()
+
+
+
+plot_hancock <- ggplot(subset(combined_data, TOWN == "Hancock"), aes(x = year, y = dev_index)) +
+  geom_point(aes(color = TOWN), size = 3) +
+  geom_line(aes(group = TOWN, color = TOWN), size = 1) +
+  labs(title = "Hancock", x = "Year", y = "Development Index") +
+  theme_minimal()
+
+plot_nelson <- ggplot(subset(combined_data, TOWN == "Nelson"), aes(x = year, y = dev_index)) +
+  geom_point(aes(color = TOWN), size = 3) +
+  geom_line(aes(group = TOWN, color = TOWN), size = 1) +
+  labs(title = "Nelson", x = "Year", y = "Development Index") +
+  theme_minimal()
+
+plot_peterborough <- ggplot(subset(combined_data, TOWN == "Peterborough"), aes(x = year, y = dev_index)) +
+  geom_point(aes(color = TOWN), size = 3) +
+  geom_line(aes(group = TOWN, color = TOWN), size = 1) +
+  labs(title = "Peterborough", x = "Year", y = "Development Index") +
+  theme_minimal()
+
+grid.arrange(plot_keene, plot_hancock, plot_nelson, plot_peterborough, ncol = 2)
+```
+
+
