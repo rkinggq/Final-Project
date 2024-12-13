@@ -21,6 +21,7 @@ library(stars)
 library(randomForest)
 library(mapview)
 library(ggplot2)
+library(parallel)
 ```
 
 ```{r, data}
@@ -63,10 +64,18 @@ new_imprev <- gsub(".*(ImpDsc)_([0-9]{4}).*", "\\1_\\2", basename(imprev))
 
 #HAVING PROBLEMS HERE!
 #land use
-land_use <- read_stars(f[grepl("LndCov", f)]) %>%
-  setNames("land_use") %>%
-  st_transform(st_crs(nh_filtered)) %>%
-  st_crop(nh_filtered)
+
+read_stars2 <- function(x,dat=NULL,name=NULL){x %>% 
+    read_stars(f[grepl(dat, f)]) %>%
+  setNames(name) %>%
+  st_transform(st_crs(nh)) %>%
+  st_crop(nh)}
+
+
+#use mclapply to load each file of each dataset
+lu <- mclapply(f[grepl("LndCov", f)], function(x) read_stars2(x,"LndCov","landuse"),mc.cores = detectCores()-2)
+names(lu) <- new_lndcov
+
 
 #imprevious
 imprevious <- read_stars(f[grepl("ImpDsc", f)]) %>%
@@ -105,11 +114,27 @@ mapview(nh_amphibian, zcol="Dead")
 ```{r, analysis}
 
 #HELP! This part giving issues
-nh_lu <- land_use %>% 
-  st_as_sf %>% 
-  st_join(nh_filtered) %>% 
-  select(land_use, TOWN, geometry)
+#CPK: This stems from multiple years. I broke it down above in a list, now we can join the stars data with the shapes and the legend (see below) working on a list again.
 
-land_use <- st_as_sf(land_use)
+#CPK: for joining an making logical lu designations rather than just numbers
+lu_legend <- read_csv("NLCD/NLCD_landcover_legend_2018_12_17_cFIMZEB3BFBhJA54WRx4.csv") %>% 
+  rename(landuse=Value) %>% 
+  mutate(landuse=as.factor(landuse))
+
+join_dat <- function(x){
+  x %>% st_as_sf %>% 
+    st_join(nh_filtered) %>% 
+    st_drop_geometry() %>% 
+    as_data_frame() %>% 
+    left_join(lu_legend) %>% 
+    dplyr::select(landuse, TOWN,Legend) %>% 
+    group_by(landuse,TOWN,Legend) %>% 
+    count
+  
+}
+#CPK:dnow use mclapply to do this operation on list of lu using custom fun. do same for other data. Beware. This will still take a while. If you'd like to decrease the time, you could downstample the stars objects, but this has a resolution tradeoff, of course.
+
+nh_lu <- mclapply(lu, function(x) join_dat(x),
+                  mc.cores = detectCores()-2)
 
 ```
