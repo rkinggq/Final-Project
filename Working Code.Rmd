@@ -194,7 +194,9 @@ combined_data <- dev_index_result %>%
 
 # Results 
 
-### Spatial Autocorrelation of Amphibian Mortality 
+
+
+### Spatial Distribution of Amphibian Mortality 
 
 To assess whether amphibian mortality from road crossing is spatially autocorrelated, we produced a map of amphibians dead across Hancock, Peterborough, Nelson, and Keene in New Hampshire.
 
@@ -223,19 +225,26 @@ nh_amphibian %>%
   ) +
   theme_minimal()
 
+
 mapview(nh_amphibian, zcol="Dead")
 
 ```
 
 
+
+
 ### Mortality Trends Over Time 
 
-To assess trends in amphibian mortality rates from road crossings across multiple years, we plotted the mortality rates (calculated as the ratio of dead to crossed amphibians) for different species over time. This analysis helps to identify any temporal changes in mortality rates, which could be indicative of the impact of increasing urbanization on amphibian populations.
+Next, to assess trends in amphibian mortality rates from road crossings across multiple years, we plotted the mortality rates (calculated as the ratio of dead to crossed amphibians) for different species over time. This analysis allows us to explore whether mortality rates have changed over the years, potentially indicating the influence of urbanization on amphibian populations.
+
+
 
 
 <center>
 **Figure 7:** Amphibian Mortality Rates Over Time for Different Species
-</center 
+</center>
+
+
 
 
 ```{r, mortality rate, message = F, echo = F, warning=F, fig.cap="Trends in amphibian mortality rates (ratio of dead to crossed amphibians) across multiple years, differentiated by species. The graph illustrates how mortality rates have changed over time, providing insights into the impact of road crossings on amphibian populations. Higher mortality rates in certain years or species may indicate increased vulnerability, potentially influenced by urbanization."}
@@ -248,15 +257,20 @@ combined_data %>%
   theme_minimal()
 ```
 
-### Assessing the Role of Land-Use Patterns in Predicting Amphibian Crossing Mortality 
 
 
-To explore the influence of urbanization (represented by the development index), year, species, and town on amphibian road crossings, we built a random forest model. The model uses the development index (dev_index), year, town (TOWN), and species as predictors for the number of road crossings (Crossed). The importance of each predictor is assessed to understand which factors most influence amphibian mortality across different towns.
+### Predicting Amphibian Crossing Mortality Based on Land Use: Random Forest and Linear Models
+
+
+To explore the influence of urbanization and other variables on amphibian road crossings, we constructed a random forest model using the development index (dev_index), year, species, and town as predictors for the number of road crossings (Crossed). The model allows us to assess the relative importance of each predictor in explaining amphibian mortality across towns.
+
+
 
 
 <center>
 **Figure 8:** Variable Importance Plot from Random Forest Model
 </center>
+
 
 
 ```{r, random forest model, message = F, echo = F, warning=F, fig.cap = "Variable Importance Plot from Random Forest Model. This plot displays the importance of each predictor variable in the random forest model used to assess the factors influencing amphibian road crossings. The predictors include the development index (dev_index), year, town (TOWN), and species. Higher importance values indicate greater influence on predicting amphibian mortality due to road crossings, with the development index and species showing notable contributions."}
@@ -267,16 +281,46 @@ varImpPlot(rf_model)
 
 
 
-```{r, analyze results linear models, message = F, echo = F, warning=F}
-#linear model: 
-#testing the relationship between amphibian crossings (Crossed) and the development index (dev_index), year, and town (TOWN).
+
+Building on these findings, we then performed a linear regression analysis to further explore how urbanization, along with other variables, directly impacts amphibian road crossings. The linear model allowed us to assess the strength and significance of these predictors in explaining the variation in amphibian crossings across years and towns.
+
+
+
+
+<center>
+**Figure 9:** Linear Model Results: Amphibian Crossings and Urbanization Factors
+</center>
+
+
+
+
+```{r, analyze results linear models, message = F, echo = F, warning=F, fig.cap="This figure presents the results of a linear regression analysis testing the relationship between amphibian road crossings (Crossed) and predictors including the development index (dev_index), year, and town (TOWN). The model helps assess how urbanization, represented by the development index, influences amphibian crossings over time and across different towns."}
+
 lm_result <- lm(Crossed ~ dev_index + year + TOWN, data = combined_data)
 summary(lm_result)
+```
 
-#interaction between development index and year 
-#an interaction term would indicate that the development index's effect is stronger or weaker depending on the year
+
+
+
+### Understanding Temporal Interactions and Town-Specific Development Trends
+
+To further investigate the interaction between urbanization and time by including an interaction term between the development index and year in the model. This allowed us to investigate how the effect of urbanization on amphibian road crossings may vary over time. The following figure presents the interaction between the development index and year, providing insights into how urbanization’s impact on amphibian crossings changes across different years.
+
+
+
+
+<center>
+**Figure 10:**  Interaction Between Development Index and Year on Amphibian Crossings
+</center>
+
+
+
+
+```{r, interaction, message = F, echo = F, warning=F, fig.cap="This figure visualizes the interaction between the development index (dev_index) and year in influencing amphibian road crossings. The linear model suggests that the effect of urbanization on amphibian crossings may change over time, with the development index’s influence potentially varying across years. This highlights how urbanization’s impact on amphibian crossings might be stronger or weaker in different years."}
+
 lm_result_interaction <- lm(Crossed ~ dev_index * year + TOWN, data = combined_data)
-summary(lm_result_interaction)
+
 ggplot(combined_data, aes(x = year, y = Crossed, color = dev_index)) +
   geom_point() +
   geom_smooth(method = "lm", aes(group = dev_index)) +
@@ -285,13 +329,28 @@ ggplot(combined_data, aes(x = year, y = Crossed, color = dev_index)) +
 ```
 
 
-```{r, graphing, message = F, echo = F, warning=F}
+
+
+
+Finally, after examining the broader trends of urbanization’s influence on amphibian crossings, we focused on the individual towns of Keene, Hancock, Nelson, and Peterborough to explore how their development index has evolved over time. This allows for a more detailed understanding of the town-specific urbanization patterns that might influence amphibian crossings
+
+
+
+
+<center>
+**Figure 11:**  Development Index Trends Across Towns Over Time
+</center>
+
+
+
+
+```{r, graphing, message = F, echo = F, warning=F, fig.cap="Figure 11 displays the development index trends for four New Hampshire towns (Keene, Hancock, Nelson, and Peterborough) from year to year. The graphs show how urbanization has evolved in these towns, with each plot illustrating the relationship between the development index and time, potentially providing insight into how these urbanization patterns may affect amphibian crossings."}
+
 plot_keene <- ggplot(subset(combined_data, TOWN == "Keene"), aes(x = year, y = dev_index)) +
   geom_point(aes(color = TOWN), size = 3) +
   geom_line(aes(group = TOWN, color = TOWN), size = 1) +
   labs(title = "Keene", x = "Year", y = "Development Index") +
   theme_minimal()
-
 
 
 plot_hancock <- ggplot(subset(combined_data, TOWN == "Hancock"), aes(x = year, y = dev_index)) +
@@ -315,3 +374,15 @@ plot_peterborough <- ggplot(subset(combined_data, TOWN == "Peterborough"), aes(x
 grid.arrange(plot_keene, plot_hancock, plot_nelson, plot_peterborough, ncol = 2)
 ```
 
+
+# Discussion 
+
+
+
+
+# Author Contributions 
+
+The project members worked equally on the project by delegating tasks and splitting up the workload: Reagan worked on the Methods and Bibliography, Betsy worked on the Introduction and Bibliography, Alex worked on the Discussion and Bibliography, and Caroline worked on the Results, Author Contributions, and Bibliography. Project members contributed to the discussion board with Caroline and Reagan asking questions and Betsy answering questions weekly. All of the project members worked together to collect data on amphibians across NH and develop our research question. Frequent communication occurred among the team with project members asking each other questions and clarifying any confusion.
+
+
+# References 
