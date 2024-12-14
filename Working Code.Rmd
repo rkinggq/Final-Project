@@ -8,7 +8,6 @@ output: html_document
 # Introduction 
 
 
-#probably put pictures of each of the amphibians in the intro 
 
 ```{r, libraries, include=FALSE}
 library(rnaturalearth)
@@ -23,9 +22,11 @@ library(parallel)
 library(gridExtra)
 ```
 
+
 <center>
-  **Figure 1:** Map of Towns of Interest in NH 
+**Figure 1:** Map of Towns of Interest in NH 
 </center>
+
 
 ```{r, plot of NH, fig.cap = "Map of NH with towns that amphibian data was collected from."}
 
@@ -45,12 +46,60 @@ ggplot() +
 
 
 
+<center>
+**Figure 2:** Eastern Newt
+</center>
+  
+
+<center>
+[![Eastern Newt](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)
+</center>
+
+
+
+
+
+<center>
+**Figure 3:** Wood Frog
+</center>
+  
+  
+<center>
+[![Wood Frog](https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg/640px-Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg)](https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg/640px-Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg)
+</center>
+
+
+
+
+
+<center>
+**Figure 4:** Spring Peeper
+</center>
+  
+  
+<center>
+[![Spring Peeper](https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Peter_Paplanus_-_Spring_Peeper_%28Pseudacris_crucifer%29_%2844981664574%29.jpg/640px-Peter_Paplanus_-_Spring_Peeper_%28Pseudacris_crucifer%29_%2844981664574%29.jpg)](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)
+</center>
+
+
+
+
+
+<center>
+**Figure 5:** Spotted Salamander
+</center>
+  
+  
+<center>
+[![Spotted Salamander](https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg/640px-Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg)](https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg/640px-Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg)
+</center>
+
 
 # Methods 
 
 
 
-```{r, load the data, warning=F, echo = F, message = F}
+```{r, load the data, warning=F, echo = F, message = F, include=F}
 amphibian <- read_csv("amphibiandata.csv")
 amphibian <- amphibian %>%
   rename(Dead = `# Dead`) %>% 
@@ -63,7 +112,7 @@ nh_amphibian <- nh_filtered %>%
   dplyr::select(TOWN, Dead, geometry)
 ```
 
-```{r, raster data, message = F, warning=F, echo = F}
+```{r, raster data, message = F, warning=F, echo = F, include=F}
 #raster data:
 f <- list.files("NLCD",pattern = ".tif", full.names=TRUE)
 print(f)
@@ -86,7 +135,7 @@ names(lu) <- new_lndcov
 ```
 
 
-```{r, analysis}
+```{r, analysis, message = F, warning=F, echo = F, include=F}
 
 lu_legend <- read_csv("NLCD/NLCD_landcover_legend_2018_12_17_cFIMZEB3BFBhJA54WRx4.csv") %>% 
   rename(landuse=Value) %>% 
@@ -127,6 +176,13 @@ dev_index_result <- nh_lu_combined %>%
   group_by(TOWN,year) %>% 
   summarize(dev_index=log(sum(dev_prop*score))) #development index
 
+
+dev_index_result <- dev_index_result %>%
+  mutate(year = as.numeric(year))
+
+amphibian <- amphibian %>%
+  mutate(year = as.numeric(year))
+
 #FINAL TIBBLE!!!
 combined_data <- dev_index_result %>%
   left_join(amphibian, by = c("TOWN", "year")) %>% 
@@ -138,13 +194,26 @@ combined_data <- dev_index_result %>%
 
 # Results 
 
-```{r, working data, message = F, warning=F, echo = F}
-# Is amphibian abundance spaitally autocorrelated, are there pockets of higher or lower dead??
+### Spatial Autocorrelation of Amphibian Mortality 
+
+To assess whether amphibian mortality from road crossing is spatially autocorrelated, we produced a map of amphibians dead across Hancock, Peterborough, Nelson, and Keene in New Hampshire.
+
+
+<center>
+**Figure 6:** Map of Amphibian Morality Across New Hampshire (NH)
+</center> 
+
+
+```{r, working data, message = F, warning=F, echo = F, fig.cap="Map of amphibian mortality across New Hampshire, depicting the count of dead amphibians observed due to road crossings. The color gradient indicates the varying number of mortalities, with darker shades representing higher counts. Town names are labeled for reference."}
 
 nh_amphibian %>%
   ggplot() + 
   geom_sf(aes(fill = Dead)) +
-  labs(title = "Amphibian Abundance (Dead) Across New Hampshire") +
+  geom_sf_text(aes(label = TOWN), size = 3, color = "black", check_overlap = TRUE) +
+  labs(
+    title = "Amphibian Mortality Across New Hampshire", 
+    subtitle = "Count of dead amphibians observed due to road crossings"
+  ) +
   scale_fill_gradient(
     name = "Count of Dead Amphibians", 
     limits = c(0, 150), 
@@ -155,10 +224,22 @@ nh_amphibian %>%
   theme_minimal()
 
 mapview(nh_amphibian, zcol="Dead")
+
 ```
 
 
-```{r, mortality rate, message = F, echo = F, warning=F}
+### Mortality Trends Over Time 
+
+To assess trends in amphibian mortality rates from road crossings across multiple years, we plotted the mortality rates (calculated as the ratio of dead to crossed amphibians) for different species over time. This analysis helps to identify any temporal changes in mortality rates, which could be indicative of the impact of increasing urbanization on amphibian populations.
+
+
+<center>
+**Figure 7:** Amphibian Mortality Rates Over Time for Different Species
+</center 
+
+
+```{r, mortality rate, message = F, echo = F, warning=F, fig.cap="Trends in amphibian mortality rates (ratio of dead to crossed amphibians) across multiple years, differentiated by species. The graph illustrates how mortality rates have changed over time, providing insights into the impact of road crossings on amphibian populations. Higher mortality rates in certain years or species may indicate increased vulnerability, potentially influenced by urbanization."}
+
 combined_data %>%
   ggplot(aes(x = year, y = Dead / Crossed, color = Species)) +
   geom_line() +
@@ -167,11 +248,20 @@ combined_data %>%
   theme_minimal()
 ```
 
+### Assessing the Role of Land-Use Patterns in Predicting Amphibian Crossing Mortality 
 
 
-```{r, random forest model, message = F, echo = F, warning=F}
+To explore the influence of urbanization (represented by the development index), year, species, and town on amphibian road crossings, we built a random forest model. The model uses the development index (dev_index), year, town (TOWN), and species as predictors for the number of road crossings (Crossed). The importance of each predictor is assessed to understand which factors most influence amphibian mortality across different towns.
+
+
+<center>
+**Figure 8:** Variable Importance Plot from Random Forest Model
+</center>
+
+
+```{r, random forest model, message = F, echo = F, warning=F, fig.cap = "Variable Importance Plot from Random Forest Model. This plot displays the importance of each predictor variable in the random forest model used to assess the factors influencing amphibian road crossings. The predictors include the development index (dev_index), year, town (TOWN), and species. Higher importance values indicate greater influence on predicting amphibian mortality due to road crossings, with the development index and species showing notable contributions."}
+
 rf_model <- randomForest(Crossed ~ dev_index + year + TOWN + Species, data = combined_data, importance = TRUE)
-importance(rf_model)
 varImpPlot(rf_model)
 ```
 
