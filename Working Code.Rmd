@@ -8,9 +8,7 @@ output: html_document
 # Introduction 
 
 
-# Methods 
-
-
+#probably put pictures of each of the amphibians in the intro 
 
 ```{r, libraries, include=FALSE}
 library(rnaturalearth)
@@ -25,16 +23,12 @@ library(parallel)
 library(gridExtra)
 ```
 
-```{r, data}
-#amphibian data: 
-amphibian <- read_csv("amphibiandata.csv")
-amphibian <- amphibian %>%
-  rename(Dead = `# Dead`) %>% 
-  rename(Crossed = `# Crossed`) %>% 
-  rename(TOWN = `Town`) %>% 
-  rename(year = `Year`)
+<center>
+  **Figure 1:** Map of Towns of Interest in NH 
+</center>
 
-#towns: 
+```{r, plot of NH, fig.cap = "Map of NH with towns that amphibian data was collected from."}
+
 nh <- read_sf("NH/New_Hampshire_Political_Boundaries.shp") %>%
   rename(TOWN=pbpNAME) 
 
@@ -49,7 +43,27 @@ ggplot() +
   theme_void()
 ```
 
-```{r, raster data}
+
+
+
+# Methods 
+
+
+
+```{r, load the data, warning=F, echo = F, message = F}
+amphibian <- read_csv("amphibiandata.csv")
+amphibian <- amphibian %>%
+  rename(Dead = `# Dead`) %>% 
+  rename(Crossed = `# Crossed`) %>% 
+  rename(TOWN = `Town`) %>% 
+  rename(year = `Year`)
+
+nh_amphibian <- nh_filtered %>% 
+  left_join(amphibian, by ="TOWN") %>% 
+  dplyr::select(TOWN, Dead, geometry)
+```
+
+```{r, raster data, message = F, warning=F, echo = F}
 #raster data:
 f <- list.files("NLCD",pattern = ".tif", full.names=TRUE)
 print(f)
@@ -58,7 +72,6 @@ lndcov <- f[grepl("LndCov", f)]
 new_lndcov <- gsub(".*LndCov_([0-9]{4}).*", "\\1", basename(lndcov))
 
 #land use
-
 read_stars2 <- function(x, dat = NULL, name = NULL) {
   x %>% 
     read_stars(f[grepl(dat, f)]) %>%
@@ -70,29 +83,6 @@ read_stars2 <- function(x, dat = NULL, name = NULL) {
 #use lapply to load each file of each dataset
 lu <- lapply(f[grepl("LndCov", f)], function(x) read_stars2(x, "LndCov", "landuse"))
 names(lu) <- new_lndcov
-```
-
-
-```{r, working data}
-# Is amphibian abundance spaitally autocorrelated, are there pockets of higher or lower dead??
-nh_amphibian <- nh_filtered %>% 
-  left_join(amphibian, by ="TOWN") %>% 
-  dplyr::select(TOWN, Dead, geometry)
-
-nh_amphibian %>%
-  ggplot() + 
-  geom_sf(aes(fill = Dead)) +
-  labs(title = "Amphibian Abundance (Dead) Across New Hampshire") +
-  scale_fill_gradient(
-    name = "Dead Count", 
-    limits = c(0, 150), 
-    low = "lightblue", 
-    high = "darkblue", 
-    na.value = "grey50" # Handles NA values
-  ) +
-  theme_minimal()
-
-mapview(nh_amphibian, zcol="Dead")
 ```
 
 
@@ -137,29 +127,75 @@ dev_index_result <- nh_lu_combined %>%
   group_by(TOWN,year) %>% 
   summarize(dev_index=log(sum(dev_prop*score))) #development index
 
-
 #FINAL TIBBLE!!!
 combined_data <- dev_index_result %>%
-  left_join(amphibian, by = c("TOWN", "year"))
-
+  left_join(amphibian, by = c("TOWN", "year")) %>% 
+  na.omit
 ```
 
 
-```{r, analyze results linear models}
 
+
+# Results 
+
+```{r, working data, message = F, warning=F, echo = F}
+# Is amphibian abundance spaitally autocorrelated, are there pockets of higher or lower dead??
+
+nh_amphibian %>%
+  ggplot() + 
+  geom_sf(aes(fill = Dead)) +
+  labs(title = "Amphibian Abundance (Dead) Across New Hampshire") +
+  scale_fill_gradient(
+    name = "Count of Dead Amphibians", 
+    limits = c(0, 150), 
+    low = "lightblue", 
+    high = "darkblue", 
+    na.value = "grey50"
+  ) +
+  theme_minimal()
+
+mapview(nh_amphibian, zcol="Dead")
+```
+
+
+```{r, mortality rate, message = F, echo = F, warning=F}
+combined_data %>%
+  ggplot(aes(x = year, y = Dead / Crossed, color = Species)) +
+  geom_line() +
+  labs(title = "Amphibian Mortality Rates Over Time", 
+       x = "Year", y = "Mortality Rate") +
+  theme_minimal()
+```
+
+
+
+```{r, random forest model, message = F, echo = F, warning=F}
+rf_model <- randomForest(Crossed ~ dev_index + year + TOWN + Species, data = combined_data, importance = TRUE)
+importance(rf_model)
+varImpPlot(rf_model)
+```
+
+
+
+```{r, analyze results linear models, message = F, echo = F, warning=F}
 #linear model: 
+#testing the relationship between amphibian crossings (Crossed) and the development index (dev_index), year, and town (TOWN).
 lm_result <- lm(Crossed ~ dev_index + year + TOWN, data = combined_data)
 summary(lm_result)
 
-
-#interaction: 
+#interaction between development index and year 
+#an interaction term would indicate that the development index's effect is stronger or weaker depending on the year
 lm_result_interaction <- lm(Crossed ~ dev_index * year + TOWN, data = combined_data)
 summary(lm_result_interaction)
-
+ggplot(combined_data, aes(x = year, y = Crossed, color = dev_index)) +
+  geom_point() +
+  geom_smooth(method = "lm", aes(group = dev_index)) +
+  labs(title = "Effect of Development Index Over Time on Amphibian Crossings", 
+       x = "Year", y = "Number of Crossed Amphibians")
 ```
 
 
-```{r, graphing}
+```{r, graphing, message = F, echo = F, warning=F}
 plot_keene <- ggplot(subset(combined_data, TOWN == "Keene"), aes(x = year, y = dev_index)) +
   geom_point(aes(color = TOWN), size = 3) +
   geom_line(aes(group = TOWN, color = TOWN), size = 1) +
@@ -188,5 +224,4 @@ plot_peterborough <- ggplot(subset(combined_data, TOWN == "Peterborough"), aes(x
 
 grid.arrange(plot_keene, plot_hancock, plot_nelson, plot_peterborough, ncol = 2)
 ```
-
 
