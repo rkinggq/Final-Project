@@ -113,7 +113,7 @@ Land use data was processed by first listing all TIFF files in the "NLCD" direct
   A linear regression model was used to explore the relationship between urbanization and amphibian crossings, incorporating the development index, year, and town as predictors. An interaction term between the development index and year was added to investigate how the effect of urbanization on amphibian crossings may vary over time. The interaction plot illustrated how the development index influenced road crossings differently across years.
 
   To provide a more detailed understanding of town-specific urbanization patterns, the development index trends for Keene, Hancock, Nelson, and Peterborough were examined over time. Graphs for each town were created to show the relationship between the development index and time.
-Finally, the random forest model was applied again to assess the importance of the development index, year, town, and species on amphibian road crossings. The resulting variable importance plot refined the understanding of the factors influencing amphibian mortality and road crossing behavior.
+
 
 
 ```{r, load the data, warning=F, echo = F, message = F, include=F}
