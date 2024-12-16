@@ -53,56 +53,18 @@ ggplot() +
   geom_sf_text(data = nh_filtered, aes(label = TOWN), size = 3, color = "black") +  # Label towns of interest
   theme_void()
 ```
-
-
-
-<center>
 **Figure 2:** Eastern Newt
-</center>
-  
+![Eastern Newt](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)
 
-<center>
-[![Eastern Newt](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)
-</center>
-
-
-
-
-
-<center>
 **Figure 3:** Wood Frog
-</center>
-  
-  
-<center>
-[![Wood Frog](https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg/640px-Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg)](https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg/640px-Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg)
-</center>
+![Wood Frog](https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg/640px-Wood_Frog_-_Lithobates_sylvaticus%2C_Lake_Accotink_Park%2C_Springfield%2C_Virginia_%2839440713811%29.jpg)
 
-
-
-
-
-<center>
 **Figure 4:** Spring Peeper
-</center>
-  
-  
-<center>
-[![Spring Peeper](https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Peter_Paplanus_-_Spring_Peeper_%28Pseudacris_crucifer%29_%2844981664574%29.jpg/640px-Peter_Paplanus_-_Spring_Peeper_%28Pseudacris_crucifer%29_%2844981664574%29.jpg)](https://upload.wikimedia.org/wikipedia/commons/4/49/Notophthalmus_viridescensPCCA20040816-3983A.jpg?20071210151624)
-</center>
+![Spring Peeper](https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Peter_Paplanus_-_Spring_Peeper_%28Pseudacris_crucifer%29_%2844981664574%29.jpg/640px-Peter_Paplanus_-_Spring_Peeper_%28Pseudacris_crucifer%29_%2844981664574%29.jpg)
 
-
-
-
-
-<center>
 **Figure 5:** Spotted Salamander
-</center>
-  
-  
-<center>
-[![Spotted Salamander](https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg/640px-Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg)](https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg/640px-Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg)
-</center>
+![Spotted Salamander](https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg/640px-Spotted_Salamander_-_Ambystoma_maculatum_%2815403871091%29.jpg)
+
 
 
 # Methods 
@@ -156,7 +118,6 @@ read_stars2 <- function(x, dat = NULL, name = NULL) {
     st_crop(nh)
 }
 
-#use lapply to load each file of each dataset
 lu <- lapply(f[grepl("LndCov", f)], function(x) read_stars2(x, "LndCov", "landuse"))
 names(lu) <- new_lndcov
 ```
@@ -419,12 +380,25 @@ grid.arrange(plot_keene, plot_hancock, plot_nelson, plot_peterborough, ncol = 2)
 
 # Discussion 
 
+Our initial goal with this project was to assess the impact of urbanization on amphibian mortality. To address this, we began by analyzing urbanization's impact on amphibian road crossings. 
 
+The random forest model (Figure 8) identified species and the development index as the most significant predictors of amphibian crossings, confirming that urbanization has a measurable influence. Specifically, our linear regression analysis (Figure 9) revealed a relationship between the development index and amphibian road crossings. However, this relationship does not appear to be linear or exponential. 
+
+When comparing towns with different development index values, interesting patterns emerged. Hancock, Nelson, and Peterborough all had very similar numbers of amphibian crossings despite differing urbanization indexes. Between the three of them, there was a slight increase in road crossings with higher urbanization, but it was not significant as overall road crossing numbers were low. In contrast, Keene, which had the highest development index, experienced a greater number of amphibian crossing counts than any of the other three towns. 
+
+A possible explanation for this observation is that Keene is categorized within the medium human development range (0.55-0.69) based on the United Nations Development Programme development index, while the other towns fall into the low development category (@UNDP2020). This suggests that amphibian crossings increase significantly in areas with medium human development compared to low-development regions. This conclusion is further supported by our interaction analysis (Figure 10), which showed that amphibian crossings exceeded 750 only when the development index indicated medium development levels. This aligns with @Matos2012, who found lower crossing rates in rural areas due to fewer roads and less habitat disturbance. In contrast, moderately developed areas experience higher amphibian movement across roads, as fragmented habitats force crossings to access resources like breeding ponds. Our findings suggest that road density and habitat fragmentation in medium-development areas increase crossing frequency, while urban areas like Keene may also benefit from greater public awareness and volunteer monitoring.
+
+After understanding the relationship between urbanization and amphibian road crossings, we next examined the relationship between urbanization and amphibian mortality. Our spatial distribution maps of amphibian mortality (Figures 6 and 7) reveal that Keene, which had the highest development index, experienced the fewest amphibian deaths. Similarly, Peterborough, with the second-highest development index, had the second-fewest deaths. In contrast, Nelson and Hancock, the two towns with the lowest development indexes, recorded the highest amphibian mortality.
+
+These findings suggest an inverse relationship between urbanization and amphibian mortality through road crossings: amphibians were more likely to die crossing roads in less urbanized areas. This result is surprising, as it seems to contradict the broader understanding that urbanization has overwhelmingly negative effects on amphibian populations through habitat fragmentation, pollution, and other factors (@Wheeler2005). However, it is important to note that our study focused solely on road crossings. While road crossing success may be higher in urbanized areas—potentially due to greater awareness, visibility, or mitigation efforts such as volunteer-led conservation initiatives—these findings do not account for other significant urbanization impacts identified by @Wheeler2005, such as degraded water quality and reduced breeding site availability. Therefore, while road crossings may appear to favor amphibian survival in urban areas, the broader consequences of urbanization on amphibian populations remain a critical concern.
+
+One important consideration is the source of our data. The amphibian road crossing and mortality data were collected from volunteer activists. While these contributions are invaluable, they inherently carry some limitations. Volunteer observations are unlikely to capture exact crossing and mortality counts and can only provide general estimates. Additionally, urban areas, which are more densely populated, may have attracted more volunteers, potentially inflating the number of observed crossings compared to rural areas.
+
+In summary, while urbanization has been widely documented as a threat to amphibians, our results suggest a nuanced relationship between urbanization and road crossings. Amphibian road crossing rates appear to peak in areas of medium development, where increased human activity might coincide with higher awareness or mitigation efforts. Furthermore, while urbanized areas saw higher crossing success, mortality rates were disproportionately higher in less urbanized regions. These findings highlight the complexity of urbanization’s effects on amphibians and highlight the need for further research to account for additional environmental and human factors influencing amphibian populations. Similarly, a study by @Zhao2023 titled “Evaluating the Urban-Rural Differences in the Environmental Factors Affecting Amphibian Roadkill” explored similar themes on a Taiwanese island. This research incorporated climate data, which plays a critical role in influencing amphibian migration patterns. By incorporating climatic data, which strongly influences amphibian migration patterns, the study shed light on seasonal spikes in roadkill. This underscores the importance of integrating both climate and urbanization data into conservation planning to better address amphibian population declines in the future.
 
 
 # Author Contributions 
 
-The project members worked equally on the project by delegating tasks and splitting up the workload: Reagan worked on the Methods and Bibliography, Betsy worked on the Introduction and Bibliography, Alex worked on the Discussion and Bibliography, and Caroline worked on the Results, Author Contributions, and Bibliography. Project members contributed to the discussion board with Caroline and Reagan asking questions and Betsy answering questions weekly. All of the project members worked together to collect data on amphibians across NH and develop our research question. Frequent communication occurred among the team with project members asking each other questions and clarifying any confusion.
-
+The project members worked equally on the project by delegating tasks and splitting up the workload: Regan worked on the Methods and Bibliography, Betsy worked on the Introduction and Bibliography, Alex worked on the Discussion and Bibliography, and Caroline worked on the Results, Author Contributions, and Bibliography. Project members contributed to the discussion board with Caroline and Reagan asking questions and Betsy answering questions weekly. All of the project members worked together to collect data on amphibians across NH and develop our research question. Frequent communication occurred among the team with project members asking each other questions and clarifying any confusion.
 
 # References 
